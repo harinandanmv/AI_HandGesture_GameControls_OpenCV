@@ -1,125 +1,173 @@
-import streamlit as st
 import cv2
 import mediapipe as mp
-import numpy as np
-from PIL import Image
-from io import BytesIO
+import pyautogui
+import time
 
-st.title("🖐️ Air Drawing with Thumb-to-Index-Base Click Gesture")
-
-# Initialize MediaPipe Hands
+# Setup MediaPipe
 mp_hands = mp.solutions.hands
-hands = mp_hands.Hands(
-    max_num_hands=1,
-    min_detection_confidence=0.7,
-    min_tracking_confidence=0.7
-)
-mp_drawing = mp.solutions.drawing_utils
+hands = mp_hands.Hands(max_num_hands=1, min_detection_confidence=0.7, min_tracking_confidence=0.5)
+mp_draw = mp.solutions.drawing_utils
 
-# Canvas size
-canvas_height, canvas_width = 480, 640
+tip_ids = [4, 8, 12, 16, 20]  # Thumb, Index, Middle, Ring, Pinky
 
-# Session state initialization
-if "canvas" not in st.session_state:
-    st.session_state.canvas = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
-if "history" not in st.session_state:
-    st.session_state.history = []
-if "drawing_done" not in st.session_state:
-    st.session_state.drawing_done = False
-
-# Buttons
-col1, col2, col3, col4 = st.columns(4)
-if col1.button("🧼 Clear Canvas"):
-    st.session_state.canvas = np.zeros((canvas_height, canvas_width, 3), dtype=np.uint8)
-    st.session_state.history = []
-    st.session_state.drawing_done = False
-
-if col2.button("↩️ Undo"):
-    if st.session_state.history:
-        st.session_state.canvas = st.session_state.history.pop()
-
-if col3.button("✅ Done Drawing"):
-    st.session_state.drawing_done = True
-
-# Webcam display
-frame_placeholder = st.empty()
-
-# Start webcam
 cap = cv2.VideoCapture(0)
-prev_x, prev_y = None, None
+cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
 
-if not cap.isOpened():
-    st.error("Cannot open webcam")
-else:
-    try:
-        while not st.session_state.drawing_done:
-            ret, frame = cap.read()
-            if not ret:
-                st.error("Failed to read from webcam")
-                break
+last_action_time = 0
+action_cooldown = 0.5  # seconds
 
-            frame = cv2.flip(frame, 1)
-            rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            results = hands.process(rgb_frame)
+movement = {'left': False, 'right': False}
 
-            if results.multi_hand_landmarks:
-                for hand_landmarks in results.multi_hand_landmarks:
-                    h, w, _ = frame.shape
+while True:
+    ret, frame = cap.read()
+    if not ret:
+        break
 
-                    # Get landmark positions
-                    index_tip = hand_landmarks.landmark[8]  # Drawing point
-                    thumb_tip = hand_landmarks.landmark[4]
-                    index_base = hand_landmarks.landmark[5]
+    frame = cv2.flip(frame, 1)
+    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    result = hands.process(rgb)
 
-                    # Convert to pixels
-                    ix, iy = int(index_tip.x * w), int(index_tip.y * h)
-                    tx, ty = int(thumb_tip.x * w), int(thumb_tip.y * h)
-                    ibx, iby = int(index_base.x * w), int(index_base.y * h)
+    fingers_up = []
 
-                    # Show fingertip marker
-                    cv2.circle(frame, (ix, iy), 10, (0, 255, 255), -1)
+    if result.multi_hand_landmarks:
+        handLms = result.multi_hand_landmarks[0]
+        lm_list = []
 
-                    # Distance between thumb tip and index base
-                    touch_distance = np.hypot(tx - ibx, ty - iby)
+        h, w, _ = frame.shape
+        for id, lm in enumerate(handLms.landmark):
+            cx, cy = int(lm.x * w), int(lm.y * h)
+            lm_list.append((cx, cy))
 
-                    # If touching, start drawing
-                    if touch_distance < 30:
-                        if prev_x is not None and prev_y is not None:
-                            st.session_state.history.append(st.session_state.canvas.copy())
-                            cv2.line(st.session_state.canvas, (prev_x, prev_y), (ix, iy), (255, 255, 255), 5)
-                        prev_x, prev_y = ix, iy
-                    else:
-                        prev_x, prev_y = None, None  # stop drawing
-
-                    # Draw hand landmarks
-                    mp_drawing.draw_landmarks(frame, hand_landmarks, mp_hands.HAND_CONNECTIONS)
+        if len(lm_list) == 21:
+            # Thumb (horizontal)
+            if lm_list[tip_ids[0]][0] > lm_list[tip_ids[0] - 1][0]:
+                fingers_up.append(1)
             else:
-                prev_x, prev_y = None, None
+                fingers_up.append(0)
 
-            # Combine webcam and drawing
-            combined = cv2.addWeighted(frame, 0.5, st.session_state.canvas, 0.5, 0)
-            combined_rgb = cv2.cvtColor(combined, cv2.COLOR_BGR2RGB)
-            frame_placeholder.image(combined_rgb, channels="RGB")
+            # Fingers (vertical)
+            for i in range(1, 5):
+                if lm_list[tip_ids[i]][1] < lm_list[tip_ids[i] - 2][1]:
+                    fingers_up.append(1)
+                else:
+                    fingers_up.append(0)
 
-    except KeyboardInterrupt:
-        cap.release()
-    finally:
-        cap.release()
+            now = time.time()
 
-# After drawing is done
-if st.session_state.drawing_done:
-    st.subheader("🎨 Drawing Complete")
-    canvas_image = Image.fromarray(cv2.cvtColor(st.session_state.canvas, cv2.COLOR_BGR2RGB))
-    st.image(canvas_image, caption="Your Drawing", use_column_width=True)
+            # All fingers up → press Shift once per cooldown
+            if fingers_up == [1, 1, 1, 1, 1]:
+                if now - last_action_time > action_cooldown:
+                    print("Dodge")
+                    pyautogui.press('shift')
+                    last_action_time = now
 
-    # Download option
-    buf = BytesIO()
-    canvas_image.save(buf, format="PNG")
-    byte_im = buf.getvalue()
+            # Move left: pinky only
+            elif fingers_up == [0, 0, 0, 0, 1]:
+                if not movement['left']:
+                    print("Start moving left")
+                    pyautogui.keyDown('a')
+                    movement['left'] = True
+                if movement['right']:
+                    pyautogui.keyUp('d')
+                    movement['right'] = False
 
-    st.download_button(
-        label="💾 Download Drawing",
-        data=byte_im,
-        file_name="drawing.png",
-        mime="image/png"
-    )
+            # Jump left: pinky + index
+            elif fingers_up == [0, 1, 0, 0, 1]:
+                if movement['left']:
+                    if now - last_action_time > action_cooldown:
+                        print("Jump Left")
+                        pyautogui.keyUp('a')
+                        pyautogui.hotkey('space', 'a')
+                        pyautogui.keyDown('a')
+                        last_action_time = now
+
+            # Jump:
+            elif fingers_up == [0, 1, 0, 0, 0]:
+                if now - last_action_time > action_cooldown:
+                    print("Jump")
+                    pyautogui.press('space')
+                    last_action_time = now
+
+            # Move up:
+            elif fingers_up == [0, 0, 1, 1, 1]:
+                if now - last_action_time > action_cooldown:
+                    print("Up")
+                    pyautogui.press('w')
+                    last_action_time = now
+
+            # Move down:
+            elif fingers_up == [0, 0, 0, 1, 1]:
+                if now - last_action_time > action_cooldown:
+                    print("Down")
+                    pyautogui.press('s')
+                    last_action_time = now
+
+            # Move right: thumb only
+            elif fingers_up == [1, 0, 0, 0, 0]:
+                if not movement['right']:
+                    print("Start moving right")
+                    pyautogui.keyDown('d')
+                    movement['right'] = True
+                if movement['left']:
+                    pyautogui.keyUp('a')
+                    movement['left'] = False
+
+            # Jump right: thumb + index
+            elif fingers_up == [1, 1, 0, 0, 0]:
+                if movement['right']:
+                    if now - last_action_time > action_cooldown:
+                        print("Jump Right")
+                        pyautogui.keyUp('d')
+                        pyautogui.hotkey('space', 'd')
+                        pyautogui.keyDown('d')
+                        last_action_time = now
+
+            # New: Press F for [0, 1, 1, 1, 1]
+            elif fingers_up == [0, 1, 1, 1, 1]:
+                if now - last_action_time > action_cooldown:
+                    print("Health")
+                    pyautogui.press('f')
+                    last_action_time = now
+
+            # New: Press R for [0, 0, 1, 1, 0]
+            elif fingers_up == [0, 0, 1, 1, 0]:
+                if now - last_action_time > action_cooldown:
+                    print("Parry")
+                    pyautogui.press('r')
+                    last_action_time = now
+
+            # New: Press T for [0, 0, 0, 0, 0]
+            elif fingers_up == [0, 0, 0, 0, 0]:
+                if now - last_action_time > action_cooldown:
+                    print("Attack")
+                    pyautogui.press('t')
+                    last_action_time = now
+
+            else:
+                # Stop all movement if no recognized gesture
+                if movement['right']:
+                    print("Stop moving right")
+                    pyautogui.keyUp('d')
+                    movement['right'] = False
+                if movement['left']:
+                    print("Stop moving left")
+                    pyautogui.keyUp('a')
+                    movement['left'] = False
+
+    else:
+        # No hand detected — stop all movement
+        if movement['right']:
+            pyautogui.keyUp('d')
+            movement['right'] = False
+        if movement['left']:
+            pyautogui.keyUp('a')
+            movement['left'] = False
+
+    cv2.imshow("Blasphemous Control", frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'):
+        break
+
+cap.release()
+cv2.destroyAllWindows()
+
