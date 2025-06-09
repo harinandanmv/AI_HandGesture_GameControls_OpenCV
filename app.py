@@ -1,5 +1,5 @@
 # ---------------------------------------------
-# Gesture-Based Controller for Blasphemous Game
+# Gesture-Based Controller for Blasphemous Game (PC)
 # ---------------------------------------------
 # This Python script uses computer vision (MediaPipe + OpenCV) and pyautogui
 # to detect specific hand gestures through webcam input and map them to in-game
