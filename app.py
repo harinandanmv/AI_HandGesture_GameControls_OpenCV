@@ -1,3 +1,20 @@
+# ---------------------------------------------
+# Gesture-Based Controller for Blasphemous Game
+# ---------------------------------------------
+# This Python script uses computer vision (MediaPipe + OpenCV) and pyautogui
+# to detect specific hand gestures through webcam input and map them to in-game
+# keyboard actions in the *Blasphemous* game.
+# 
+# Recognized gestures trigger actions like:
+# - Movement (left/right)
+# - Jumping (single or directional)
+# - Dodging
+# - Attacking
+# - Using abilities (like health and parry)
+#
+# Run this script and control your character using hand gestures!
+# Press 'q' to quit the application.
+
 import cv2
 import mediapipe as mp
 import pyautogui
