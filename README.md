@@ -1,31 +1,31 @@
 # 🎮 Gesture-Based Controller for Blasphemous (PC Game)
 
 Control your *Blasphemous* game character using **hand gestures** via webcam!
-This AI-powered controller uses **MediaPipe**, **OpenCV**, and **PyAutoGUI** to detect specific hand gestures and map them to in-game keyboard actions.
+This AI-powered controller leverages **MediaPipe**, **OpenCV**, and **PyAutoGUI** to detect real-time hand gestures and seamlessly convert them into keyboard actions, allowing a unique and immersive way to interact with the game — **no physical controller needed!**
 
 ---
 
 ## 🧠 Features
 
-* 👋 Real-time **hand gesture recognition** using MediaPipe
-* 🎮 In-game actions mapped to gestures:
+* 👋 Real-time **hand gesture recognition** powered by MediaPipe’s advanced hand tracking technology.
+* 🎮 Smart gesture-to-keyboard mapping to perform various in-game actions such as:
 
-  * Move left/right
-  * Jump (standard + directional)
-  * Dodge
-  * Attack
-  * Parry
-  * Heal
-* 🖥️ Lightweight and responsive — runs in real-time on most systems
+  * Smooth movement in both directions (left and right)
+  * Jump actions (vertical and directional)
+  * Quick dodge using a single gesture
+  * Melee or ranged attack triggering
+  * Defensive maneuvers like parry
+  * Instant use of healing abilities
+* 🖥️ Lightweight and responsive system, capable of running on most PCs with a basic webcam and Python environment.
 
 ---
 
 ## 🔧 Tech Stack
 
-* Python
-* OpenCV
-* MediaPipe
-* PyAutoGUI
+* **Python** – Core scripting and logic
+* **OpenCV** – Real-time video feed capture and processing
+* **MediaPipe** – Hand landmark detection and tracking
+* **PyAutoGUI** – Simulates keyboard input for gameplay control
 
 ---
 
@@ -40,6 +40,8 @@ cd AI_HandGesture_GameControls_Using_OpenCV
 
 ### 2. Install dependencies
 
+Make sure you have Python installed. Then, run:
+
 ```bash
 pip install opencv-python mediapipe pyautogui
 ```
@@ -47,16 +49,18 @@ pip install opencv-python mediapipe pyautogui
 ### 3. Run the script
 
 ```bash
-python gesture_controller.py
+python app.py
 ```
 
-> **Note:** Ensure your webcam is connected and accessible.
+> ⚠️ **Note:** Ensure your webcam is properly connected. Close any other application using the camera before running this script.
 
 ---
 
 ## ✋ Gesture Mappings
 
-| Gesture                       | Action           |
+These are the hand gestures recognized by the system and the in-game actions they perform:
+
+| Gesture                       | Mapped Action    |
 | ----------------------------- | ---------------- |
 | All fingers up                | Dodge (`Shift`)  |
 | Pinky only                    | Move Left (`A`)  |
@@ -66,29 +70,39 @@ python gesture_controller.py
 | Index only                    | Jump (`Space`)   |
 | Middle + Ring + Pinky         | Move Up (`W`)    |
 | Ring + Pinky                  | Move Down (`S`)  |
-| Index + Middle + Ring + Pinky | Heal (`F`)       |
+| Index + Middle + Ring + Pinky | Use Heal (`F`)   |
 | Middle + Ring                 | Parry (`R`)      |
-| Fist (all down)               | Attack (`T`)     |
+| Fist (no fingers extended)    | Attack (`T`)     |
+
+> ⏱️ Each gesture is interpreted with a short cooldown to avoid repeated accidental triggers.
+
+---
+
+## 📁 Project Structure
+
+```plaintext
+AI_HandGesture_GameControls_Using_OpenCV/
+│
+├── app.py                  # Main Python script for gesture recognition and game control
+├── README.md               # Project documentation
+└── requirements.txt        # File listing all dependencies
+```
 
 ---
 
 ## 🛑 Exit Instructions
 
-Press **`q`** to exit the application window.
+To safely exit the application, press the **`q`** key in the camera window or close the display window directly.
 
 ---
 
 ## 🙌 Acknowledgements
 
-* [MediaPipe Hands](https://google.github.io/mediapipe/solutions/hands.html) by Google
-* [PyAutoGUI](https://pyautogui.readthedocs.io/en/latest/)
-* OpenCV for real-time video feed handling
+Special thanks to the following tools and libraries that made this project possible:
 
----
-
-## 📜 License
-
-This project is licensed under the **MIT License** — free to use, modify, and share.
+* [**MediaPipe Hands**](https://google.github.io/mediapipe/solutions/hands.html) – For robust hand detection and tracking.
+* [**PyAutoGUI**](https://pyautogui.readthedocs.io/en/latest/) – For simulating keyboard events programmatically.
+* [**OpenCV**](https://opencv.org/) – For real-time image processing and webcam feed integration.
 
 ---
 
