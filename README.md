@@ -34,8 +34,8 @@ This AI-powered controller leverages **MediaPipe**, **OpenCV**, and **PyAutoGUI*
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/harinandanmv/AI_HandGesture_GameControls_Using_OpenCV.git
-cd AI_HandGesture_GameControls_Using_OpenCV
+git clone https://github.com/harinandanmv/ai-hand-gesture-game-controls.git
+cd ai-hand-gesture-game-controls
 ```
 
 ### 2. Install dependencies
